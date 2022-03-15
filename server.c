@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 
-#define server_port  6262
+#define server_port  88
 #define server_IP 192.168.0.128
 
 int main ()
@@ -31,8 +31,9 @@ int main ()
 	memset (&addr_server,0,sizeof(addr_server));
 	addr_server.sin_family = AF_INET;
 	addr_server.sin_port = htons(server_port);
-
 	addr_server.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	int addr_len = sizeof(addr_server);
 	if(bind(sock_fd,(struct sockaddr *)&addr_server,sizeof(addr_server)) < 0)
 	{
 		perror("bind error");
@@ -50,8 +51,7 @@ int main ()
 	{
 		printf("服务器准备就绪\n");
 //收
-		recv = recvfrom(sock_fd,recv_buf,sizeof(recv_buf),0,
-				(struct sockaddr *) &addr_client,(socklen_t *) &len);
+		recv = recvfrom(sock_fd,recv_buf,sizeof(recv_buf),0,(struct sockaddr *) &addr_client,&addr_len);
 		if(recv < 0)
 		{
 			perror("recvfrom error");
