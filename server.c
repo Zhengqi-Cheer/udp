@@ -77,7 +77,7 @@ int main ()
 
 	while(1)
 	{
-		cheat (sock_fd,addr_client);
+		//cheat (sock_fd,addr_client);
 		recv_file(recvfile_sock,addr_client);
 		
 	}

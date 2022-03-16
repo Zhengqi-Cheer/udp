@@ -48,7 +48,7 @@ int  main ()
 	
 //收发准备
 
-	cheat(client_sock,server_addr);//聊天
+	//cheat(client_sock,server_addr);//聊天
 	send_file(file_sock,server_addr);//传文件
 
 
