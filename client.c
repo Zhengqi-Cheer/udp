@@ -14,7 +14,7 @@ int  main ()
 {
 //创建套接字client_sock
 	int client_sock;
-	if( client_sock < 0)
+	if( (client_sock = socket(AF_INET,SOCK_DGRAM,0)) < 0)
 	{
 		perror ("sock error");
 		return -1;
@@ -26,7 +26,7 @@ int  main ()
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = inet_addr(server_ip);
 	server_addr.sin_port = htons(server_port);
-	
+	int addr_len = sizeof(server_addr);	
 //收发准备
 
 	int send,recv;
@@ -36,8 +36,7 @@ int  main ()
 	printf("发送：");
 	scanf("%s",send_buf);
 
-	send = sendto(client_sock,send_buf,sizeof(send_buf),0,
-			(struct sockaddr *)&server_addr,sizeof(server_addr));
+	send = sendto(client_sock,send_buf,sizeof(send_buf),0,(struct sockaddr *)&server_addr,sizeof(server_addr));
 	if(send < 0)
 	{
 		perror("发送未完成");
@@ -47,8 +46,7 @@ int  main ()
 	else 
 		printf("发送完成");
 	//收
-	recv = recvfrom(client_sock, recv_buf, sizeof(recv_buf), 0, 
-			(struct sockaddr *)&server_addr, sizeof(server_addr));       
+	recv = recvfrom(client_sock, recv_buf, sizeof(recv_buf), 0, (struct sockaddr *)&server_addr, &addr_len);       
 	if(recv < 0)  
 	{  
 	    	perror("recvfrom error:");  
