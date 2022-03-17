@@ -58,7 +58,7 @@ int  main ()
 
 int send_file(int file_sock,struct sockaddr_in server_addr)
 {
-	char flie_path[100];
+	char flie_path[100] =" /home/zehngquan/share/git/udp/1.txt/";
 	int addr_len = sizeof(server_addr); 
 
 	FILE *fp;
@@ -68,7 +68,7 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 	bzero(buffer,BUFFER_SIZE);
 
 	printf("输入要发送的文件地址：");//发送的文件地址
-	scanf("%s",flie_path);
+	//scanf("%s",flie_path);
 
 	fp = fopen(flie_path,"r");//只读
 	if(fp == NULL)
@@ -97,7 +97,8 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 	while ((fileTrans = fread(buffer,sizeof(char),BUFFER_SIZE,fp)) > 0 )
 	{
 		times++;
-		if((sendto(file_sock,buffer,sizeof(buffer),0,(struct sockaddr *)&server_addr,addr_len)) <0 )
+		printf("发送的数据是：%s",buffer);
+		if((sendto(file_sock,buffer,fileTrans,0,(struct sockaddr *)&server_addr,addr_len)) <0 )
 		{
 			perror("send date error\n");
 			return -3;

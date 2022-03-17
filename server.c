@@ -22,7 +22,6 @@ int cheat (int sock_fd,struct sockaddr_in addr_client);
 int recv_file(int recv_sock,struct sockaddr_in addr_client);
 
 
-
 int main ()
 {
 	
@@ -35,7 +34,8 @@ int main ()
 	else 
 		printf("sock_fd ok\n");
 	struct sockaddr_in addr_server;
-//聊天套接字和结构体addr_server绑定
+	struct sockaddr_in addr_client;
+//套接字和结构体addr_server绑定
 	int len;
 	memset (&addr_server,0,sizeof(addr_server));
 	addr_server.sin_family = AF_INET;
@@ -50,7 +50,7 @@ int main ()
 	}
 	else
 		printf("sock_fd bind ok\n");
-
+/*
 //文件套接字和结构体绑定
 	int recvfile_sock = socket(AF_INET,SOCK_DGRAM,0);
 	if(sock_fd < 0 )
@@ -60,16 +60,22 @@ int main ()
 	}
 	else 
 		printf("recvfile_sock ok\n");
-	if(bind(recvfile_sock,(struct sockaddr *)&addr_server,sizeof(addr_server)) < 0)
+	struct sockaddr_in addr_serverfile;
+	memset (&addr_server,0,sizeof(addr_serverfile));
+	addr_serverfile.sin_family = AF_INET;
+	addr_serverfile.sin_port = htons(server_port);
+	addr_serverfile.sin_addr.s_addr = htonl(INADDR_ANY);
+	//int addr_len = sizeof(addr_serverfile);
+	if(bind(recvfile_sock,(struct sockaddr *)&addr_serverfile,sizeof(addr_serverfile)) < 0)
 	{
 		perror("recvfile_sock bind error\n");
 		return -1;
 	}
 	else
 		printf("recvfile_sock bind ok\n");
+*/
 
-
-	struct sockaddr_in addr_client;
+	
 	
 //接收
 
@@ -78,7 +84,7 @@ int main ()
 	while(1)
 	{
 		//cheat (sock_fd,addr_client);
-		recv_file(recvfile_sock,addr_client);
+		recv_file(sock_fd,addr_client);
 		
 	}
 	close(sock_fd);
@@ -129,9 +135,7 @@ int recv_file(int recv_sock,struct sockaddr_in addr_client)
 	char filename[100];
 	char filepath[100];
 
-	char *buffer;
-
-	buffer = (char*)malloc(sizeof(char)*BUFFER_SIZE);//开文件缓存空间
+	char buffer[BUFFER_SIZE] ;//开文件缓存空间
 	bzero(buffer,BUFFER_SIZE);
 
 	FILE *fp;
@@ -143,7 +147,7 @@ int recv_file(int recv_sock,struct sockaddr_in addr_client)
 
 //接收地址和名字
 	int recv_n;
-	recv_n =recvfrom(recv_sock,filepath,sizeof(filepath),0,(struct sockaddr *) &addr_client,&addr_len);
+	recv_n =recvfrom(recv_sock,filepath,100,0,(struct sockaddr *) &addr_client,&addr_len);
 	if(recv_n < 0)
 		{
 		perror ("recv error\n");
@@ -167,35 +171,45 @@ int recv_file(int recv_sock,struct sockaddr_in addr_client)
 	strcpy(filename,filepath+(strlen(filepath)-k)+1);
 	}
 	printf("文件名字filename:%s\n",filename);
+	char server_filepath[100]= "/home/zhengquan/share/git/udp/";
+	
+	strncat(server_filepath,filename,strlen(filename));
 
-	fp = fopen(filename,"w");
+	fp = fopen(filename,"w+");
 	if(fp == NULL)
 	{
 		perror("file open error");
 		return -2;
 	}
 	else
-	{
+	{	printf("open file ok");
 		int times = 1;
 		int fileTrans;
 		int writelength;
 	//收数据
-		while (fileTrans = recvfrom(recv_sock,buffer,BUFFER_SIZE,0,(struct sockaddr *)&addr_client,addr_len)>0)
+		while (fileTrans = recvfrom(recv_sock,buffer,BUFFER_SIZE,0,(struct sockaddr *)&addr_client,addr_len))
 		{
+			
 			times++;
 			writelength = fwrite(buffer,sizeof(char),fileTrans,fp);
-			if (fileTrans < BUFFER_SIZE)
+			if(writelength <= 0)
+				printf("没有就收到数据\n");
+			else
 			{
+				printf("writelength:%d\n",writelength);
+				if (fileTrans < BUFFER_SIZE)
+				{
 					printf("接收完成\n");
 					break;
-			}
-				else
-					printf("写入成功\n");
+				}
+				
+			}	
+				printf("写入成功\n");
 		}
 		printf("recv finished!\n");
 	}
 		
-		fclose(fp);
+	fclose(fp);
 
 
 }
