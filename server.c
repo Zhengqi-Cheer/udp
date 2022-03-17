@@ -15,7 +15,7 @@
 #define server_port  88
 #define server_IP 192.168.0.128
 
-
+#define fd_num 64
 #define BUFFER_SIZE 1024
 
 int cheat (int sock_fd,struct sockaddr_in addr_client);
@@ -79,14 +79,72 @@ int main ()
 	
 //接收
 
-	printf("服务器准备就绪\n");
+	int array[fd_num] = {-1};	//描述符集合
+	
+	fd_set read_set;		//	
+	fd_set write_set;
+	FD_ZERO(&read_set);	//清空集合
+	FD_ZERO(&write_set);	//清空集合
+	
+	FD_SET(sock_fd,&read_set);//
 
+	for(int i = 0;i<fd_num;++i) //对 array[]进行初始化
+	{
+		array[i]=-1;
+	}
+	
+	array[0]= sock_fd;
+
+	struct timeval timeout = {1,0};//超时时间
+	
+	printf("服务器准备就绪\n");
+	
 	while(1)
 	{
-		//cheat (sock_fd,addr_client);
-		recv_file(sock_fd,addr_client);
+		int MAX_FD=-1;
+		for (int i = 0; i < fd_num; ++i) //取最大值
+			{
+			if(array[i]>0)
+				FD_SET(array[i],&read_set);
+				FD_SET(array[i],&write_set);	
+				MAX_FD = MAX_FD > array[i] ? MAX_FD : array[i];
+			}
+		int result = select(MAX_FD+1,&read_set,&write_set,NULL,NULL);
+		switch(result)
+		{
+			case -1 :
+				perror("select 错误：");
+				break;
+			case 0 :
+				printf("select timeout...\n");
+				break;
+			default:
+			{
+				//检测那个描述符有变化
+				int i=0;
+				for (i = 0; i < fd_num; ++i)
+					{
+					if (array[i]>0&&FD_ISSET(array[i],&read_set)&&FD_ISSET(array[i],&write_set))
+						{
+							recv_file(array[i],addr_client);
+							
+						}
+					else if (array[i]>0 && FD_ISSET(array[i],&write_set))
+						{
+						cheat (array[i],addr_client);
+
+						}
+					}
+
+			}
 		
+		
+
+		}
+
 	}
+
+
 	close(sock_fd);
 	return 0;	
 }
@@ -187,8 +245,9 @@ int recv_file(int recv_sock,struct sockaddr_in addr_client)
 		int fileTrans;
 		int writelength;
 	//收数据
-		while (fileTrans = recvfrom(recv_sock,buffer,BUFFER_SIZE,0,(struct sockaddr *)&addr_client,addr_len))
+		while (fileTrans = recvfrom(recv_sock,buffer,BUFFER_SIZE,0,(struct sockaddr *)&addr_client,&addr_len))
 		{
+
 			
 			times++;
 			writelength = fwrite(buffer,sizeof(char),fileTrans,fp);

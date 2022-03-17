@@ -11,6 +11,7 @@
 #define server_ip "192.168.0.128"
 
 
+#define fd_num 64
 #define BUFFER_SIZE 1024
 
 int send_file(int file_sock,struct sockaddr_in server_addr);
@@ -44,12 +45,80 @@ int  main ()
 	
 	}
 	else printf("flie_sock ok\n");
-	
+
+
+		//cheat(client_sock,server_addr);//聊天
+	//send_file(file_sock,server_addr);//传文件
 	
 //收发准备
+	int array[fd_num] = {-1};	//描述符集合
+		
+		fd_set read_set;		//	
+		fd_set write_set;
+		FD_ZERO(&read_set); //清空集合
+		FD_ZERO(&write_set);	//清空集合
+		
+		FD_SET(client_sock,&read_set);//
+	
+		for(int i = 0;i<fd_num;++i) //对 array[]进行初始化
+		{
+			array[i]=-1;
+		}
+		
+		array[0]= client_sock;
+		array[1]= file_sock;
+	
+		struct timeval timeout = {1,0};//超时时间
+		
+		printf("服务器准备就绪\n");
+		
+		while(1)
+		{
+			int MAX_FD=-1;
+			for (int i = 0; i < fd_num; ++i) //取最大值
+				{
+				if(array[i]>0)
+					FD_SET(array[i],&read_set);
+					FD_SET(array[i],&write_set);	
+					MAX_FD = MAX_FD > array[i] ? MAX_FD : array[i];
+				}
+			int result = select(MAX_FD+1,&read_set,&write_set,NULL,NULL);
+			switch(result)
+			{
+				case -1 :
+					perror("select 错误：");
+					break;
+				case 0 :
+					printf("select timeout...\n");
+					break;
+				default:
+				{
+					//检测那个描述符有变化
+					int i=0;
+					for (i = 0; i < fd_num; ++i)
+						{
+						if (array[i]>0&&FD_ISSET(array[i],&read_set)&&FD_ISSET(array[i],&write_set))
+							{
+								send_file(array[i],server_addr);
+								
+							}
+						else if (array[i]>0 && FD_ISSET(array[i],&write_set))
+							{
+							cheat (array[i],server_addr);
+	
+							}
+						}
+	
+				}
+			
+			
+	
+			}
+	
+		}
 
-	//cheat(client_sock,server_addr);//聊天
-	send_file(file_sock,server_addr);//传文件
+
+
 
 
 }
@@ -58,7 +127,7 @@ int  main ()
 
 int send_file(int file_sock,struct sockaddr_in server_addr)
 {
-	char flie_path[100] =" /home/zehngquan/share/git/udp/1.txt/";
+	char flie_path[100];// ="/home/zehngquan/share/git/udp/1.txt";
 	int addr_len = sizeof(server_addr); 
 
 	FILE *fp;
@@ -68,7 +137,7 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 	bzero(buffer,BUFFER_SIZE);
 
 	printf("输入要发送的文件地址：");//发送的文件地址
-	//scanf("%s",flie_path);
+	scanf("%s",flie_path);
 
 	fp = fopen(flie_path,"r");//只读
 	if(fp == NULL)
