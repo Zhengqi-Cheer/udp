@@ -14,8 +14,8 @@
 #define fd_num 64
 #define BUFFER_SIZE 1024
 
-int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[100]);
-int   cheat (int client_sock,struct sockaddr_in server_addr);
+int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[256]);
+int   cheat (int client_sock,struct sockaddr_in server_addr,char recv_buf[256]);
 
 
 
@@ -29,6 +29,7 @@ int  main ()
 		return -1;
 	
 	}
+	else printf("sock ok\n");
 //设置address
 	struct sockaddr_in server_addr;
 	memset(&server_addr,0,sizeof(server_addr));
@@ -104,7 +105,7 @@ int  main ()
 							if(buff[0] == '/')	
 								send_file(array[i],server_addr, buff);
 							else	
-								cheat (array[i],server_addr);
+								cheat (array[i],server_addr,buff);
 							}
 						/*
 						else if (array[i]>0 && FD_ISSET(array[i],&write_set))
@@ -131,7 +132,7 @@ int  main ()
 
 
 
-int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[100])
+int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[256])
 {
 	//char flie_path[100];// ="/home/zehngquan/share/git/udp/1.txt";
 	int addr_len = sizeof(server_addr); 
@@ -186,17 +187,17 @@ int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[100])
 	return 0;
 }
 
-int  cheat (int client_sock,struct sockaddr_in server_addr)
+int  cheat (int client_sock,struct sockaddr_in server_addr,char recv_buf[256])
 {
 	int send,recv;
 	int addr_len = sizeof(server_addr);	
 	char send_buf[256];
-	char recv_buf[256];
+	//char recv_buf[256];
 	//发	
-	printf("发送：");
-	scanf("%s",send_buf);
+	//printf("发送：");
+	//scanf("%s",send_buf);
 	
-	send = sendto(client_sock,send_buf,sizeof(send_buf),0,(struct sockaddr *)&server_addr,sizeof(server_addr));
+	send = sendto(client_sock,send_buf,strlen(send_buf),0,(struct sockaddr *)&server_addr,sizeof(server_addr));
 	if(send < 0)
 	{
 		perror("发送未完成");
@@ -206,7 +207,7 @@ int  cheat (int client_sock,struct sockaddr_in server_addr)
 	else 
 		printf("发送完成");
 	//收
-	recv = recvfrom(client_sock, recv_buf, sizeof(recv_buf), 0, (struct sockaddr *)&server_addr, &addr_len);	   
+	recv = recvfrom(client_sock, recv_buf, strlen(recv_buf), 0, (struct sockaddr *)&server_addr, &addr_len);	   
 	if(recv < 0)  
 	{  
 		perror("recvfrom error:");
