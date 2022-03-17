@@ -103,13 +103,16 @@ int  main ()
 							scanf("%s",buff);
 							if(buff[0] == '/')	
 								send_file(array[i],server_addr, buff);
-								
+							else	
+								cheat (array[i],server_addr);
 							}
+						/*
 						else if (array[i]>0 && FD_ISSET(array[i],&write_set))
 							{
 							cheat (array[i],server_addr);
 	
 							}
+							*/
 						}
 	
 				}
