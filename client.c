@@ -14,7 +14,7 @@
 #define fd_num 64
 #define BUFFER_SIZE 1024
 
-int send_file(int file_sock,struct sockaddr_in server_addr);
+int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[100]);
 int   cheat (int client_sock,struct sockaddr_in server_addr);
 
 
@@ -99,7 +99,10 @@ int  main ()
 						{
 						if (array[i]>0&&FD_ISSET(array[i],&read_set)&&FD_ISSET(array[i],&write_set))
 							{
-								send_file(array[i],server_addr);
+							char buff[100];
+							scanf("%s",buff);
+							if(buff[0] == '/')	
+								send_file(array[i],server_addr, buff);
 								
 							}
 						else if (array[i]>0 && FD_ISSET(array[i],&write_set))
@@ -125,9 +128,9 @@ int  main ()
 
 
 
-int send_file(int file_sock,struct sockaddr_in server_addr)
+int send_file(int file_sock,struct sockaddr_in server_addr,char flie_path[100])
 {
-	char flie_path[100];// ="/home/zehngquan/share/git/udp/1.txt";
+	//char flie_path[100];// ="/home/zehngquan/share/git/udp/1.txt";
 	int addr_len = sizeof(server_addr); 
 
 	FILE *fp;
@@ -136,8 +139,8 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 	buffer = malloc (sizeof(char)*BUFFER_SIZE);
 	bzero(buffer,BUFFER_SIZE);
 
-	printf("输入要发送的文件地址：");//发送的文件地址
-	scanf("%s",flie_path);
+	//printf("输入要发送的文件地址：");//发送的文件地址
+	//scanf("%s",flie_path);
 
 	fp = fopen(flie_path,"r");//只读
 	if(fp == NULL)
@@ -150,7 +153,7 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 		printf("open file ok !\n");	
 
 //发送
-	int file_n = sendto(file_sock,flie_path,sizeof(flie_path),0,(struct sockaddr *)&server_addr,addr_len) ;
+	int file_n = sendto(file_sock,flie_path,strlen(flie_path),0,(struct sockaddr *)&server_addr,addr_len) ;
 	if(file_n < 0)
 	{
 		perror("send file_path error\n");
@@ -180,7 +183,7 @@ int send_file(int file_sock,struct sockaddr_in server_addr)
 	return 0;
 }
 
-int   cheat (int client_sock,struct sockaddr_in server_addr)
+int  cheat (int client_sock,struct sockaddr_in server_addr)
 {
 	int send,recv;
 	int addr_len = sizeof(server_addr);	

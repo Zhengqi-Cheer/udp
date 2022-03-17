@@ -124,7 +124,7 @@ int main ()
 				int i=0;
 				for (i = 0; i < fd_num; ++i)
 					{
-					if (array[i]>0&&FD_ISSET(array[i],&read_set)&&FD_ISSET(array[i],&write_set))
+					if (array[i]>0&&FD_ISSET(array[i],&read_set))
 						{
 							recv_file(array[i],addr_client);
 							
