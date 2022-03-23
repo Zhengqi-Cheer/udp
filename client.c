@@ -29,7 +29,7 @@ fd_set read_set;
 struct udp_date_head{
 	char type ; 
 	char file_num ;
-	//unsigned short date_len;
+	unsigned short date_len;
 	char filename[16];
 	char file_date[BUFFER_SIZE];
 };
@@ -100,7 +100,7 @@ int main(void)
 					if(FD_ISSET(0,&read_set)){
 						//printf("键盘输入就绪1\n");
 						char buff[BUFFER_SIZE];
-						memset (buff,0,BUFFER_SIZE);
+						memset (buff,0,sizeof(buff));
 						read(0,buff,sizeof(buff));
 						if(buff[0] == '/'){
 							//printf("file");
@@ -112,7 +112,7 @@ int main(void)
 					
 					if (FD_ISSET(sock_fd,&read_set)){
 						printf("接收就绪3\n");
-						char buff[BUFFER_SIZE+18];
+						char buff[sizeof(date_head)];
 						int recv_n = recvfrom(sock_fd,buff,sizeof(buff),0,(struct sockaddr *)&addr_server,&addr_len);
 						if(recv_n == -1){
 							perror ("recv_n error\n");
@@ -230,10 +230,8 @@ int open_file(const char *filepath, int *array,char flag)
 
 int send_file_date(const int send_sock,int *array)
 {
-	
 	date_head.type = 0;
 	strcpy(date_head.filename , "1.txt");
-	
 	char read_buff[BUFFER_SIZE] = {0};
 	//memset(buff,0,sizeof(buff));
 
@@ -245,6 +243,7 @@ int send_file_date(const int send_sock,int *array)
 	}
 	
 	else {
+		date_head.date_len = read_num;
 		memset(date_head.file_date,0,sizeof(date_head.file_date));
 		stpcpy(date_head.file_date,read_buff);//装载数据
 		//printf("read ok :%d byte\n",read_num);
@@ -280,16 +279,18 @@ int send_file_date(const int send_sock,int *array)
 }
 int do_recv_date(char *buff)
 {
-	//sleep(1);
-	char *p = buff;
+	
+	//char *p = buff;
 	char date[BUFFER_SIZE]= {0};
-	memcpy(date,buff+18,BUFFER_SIZE);
-	int n = *(p+1);
+	memcpy(date,buff+sizeof(date_head.type)+sizeof(date_head.file_num)+sizeof(date_head.date_len)+sizeof(date_head.filename),BUFFER_SIZE);
+	int n = *(buff+sizeof(date_head.type));
 	//printf("num:%d\n",n);
 	//printf("wfp:%d\n",wfp);
 	//printf("date：%d byte\n",sizeof(date));
+	unsigned short  date_len = 0;
+	memcpy(date_len,buff+sizeof(date_head.type)+sizeof(date_head.file_num),sizeof(date_head.date_len));
 	lseek(wfp,n*BUFFER_SIZE,SEEK_SET);
-	int writelength = write(wfp,date,sizeof(date));
+	int writelength = write(wfp,date,date_len);
 	
 	//printf("写入：%d byte\n",writelength);
 	if(writelength == -1){
