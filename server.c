@@ -15,7 +15,7 @@
 #define server_IP "192.168.0.128"
 
 #define fd_num 8
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 255
 
 int send_message (const int sock_fd,char *send_buf);
 int open_file(const char *filepath, int *array,char flag);
@@ -158,6 +158,7 @@ int main(void)
 int send_message (const int sock_fd,char *date_buf)
 {	
 	date_head.type = 1;
+	memset(date_head.file_date,0,sizeof(date_head.file_date));
 	strcpy(date_head.file_date,date_buf);
 	int send;	
 	//发	
@@ -252,6 +253,7 @@ int send_file_date(const int send_sock,int *array)
 	}
 	
 	else {
+		memset(date_head.file_date,0,sizeof(date_head.file_date));
 		strcpy(date_head.file_date,read_buff);
 		printf("read ok :%d byte\n",read_num);
 		int addr_len = sizeof(addr_server);

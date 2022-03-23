@@ -15,7 +15,7 @@
 #define server_IP "192.168.0.128"
 
 #define fd_num 8
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 255
 
 int send_message (const int sock_fd,char *date_buf,int alen);
 int  open_file(const char *filepath, int *array,char flag);
@@ -25,12 +25,11 @@ int send_file_date(int send_sock,int *array);
 int  wfp = -1;
 int  rfp = -1;	
 fd_set read_set;
-
-//struct sockaddr_in addr_client;
-
+//文件（0）or消息（1）/编号（8位）/date_len/名字(16)/   18字节 
 struct udp_date_head{
-	char type ;
+	char type ; 
 	char file_num ;
+	//unsigned short date_len;
 	char filename[16];
 	char file_date[BUFFER_SIZE];
 };
@@ -151,8 +150,8 @@ int main(void)
 int send_message (const int sock_fd,char *date_buf,int slen)
 {
 	date_head.type = 1;
-	stpcpy(date_head.file_date,date_buf);
-		
+	memset(date_head.file_date,0,sizeof(date_head.file_date));
+	stpcpy(date_head.file_date,date_buf);	
 	char send_buf[sizeof(date_head)] = {0};
 	memset(send_buf,0,sizeof(send_buf));
 	memcpy(send_buf,&date_head,sizeof(date_head));
@@ -162,6 +161,7 @@ int send_message (const int sock_fd,char *date_buf,int slen)
 		perror("send error");
 		return -1;		
 	}
+	
 	else 
 		printf("send ok\n");
 	return 0;
@@ -245,6 +245,7 @@ int send_file_date(const int send_sock,int *array)
 	}
 	
 	else {
+		memset(date_head.file_date,0,sizeof(date_head.file_date));
 		stpcpy(date_head.file_date,read_buff);//装载数据
 		//printf("read ok :%d byte\n",read_num);
 		int addr_len = sizeof(addr_server);
@@ -277,8 +278,6 @@ int send_file_date(const int send_sock,int *array)
 		}
 	}	
 }
-//文件（0）or消息（1）/编号（8位）/名字(16)/   18字节 
-
 int do_recv_date(char *buff)
 {
 	//sleep(1);
