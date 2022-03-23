@@ -15,10 +15,10 @@
 #define server_IP "192.168.0.128"
 
 #define fd_num 8
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 256
 
 int send_message (const int sock_fd,char *send_buf);
-int open_file(const char *filepath, int *array);
+int open_file(const char *filepath, int *array,char flag);
 int do_recv_date(char *buff);
 int send_file_date(int send_sock,int *array);
 
@@ -32,6 +32,7 @@ struct udp_date_head{
 	char type ;
 	char file_num ;
 	char filename[16];
+	char file_date[BUFFER_SIZE];
 };
 
 struct udp_date_head date_head;
@@ -40,6 +41,7 @@ struct sockaddr_in addr_client;
 
 int main(void)
 {
+	
 	int sock_fd = socket(AF_INET,SOCK_DGRAM,0);
 	if(sock_fd == -1 ) {	
 		perror("sock_fd error\n");
@@ -48,7 +50,7 @@ int main(void)
 	else {
 		printf("sock_fd ok:%d\n",sock_fd);
 	}
-	
+	wfp= open("/home/zhengquan/share/git/udp/1.txt",O_RDWR | O_CREAT);
 	memset (&addr_server,0,sizeof(addr_server));
 	addr_server.sin_family = AF_INET;
 	addr_server.sin_port = htons(server_port);
@@ -70,28 +72,27 @@ int main(void)
 	fd_set write_set;
 	FD_ZERO(&read_set);	//清空集合
 	FD_ZERO(&write_set);	//清空集合
-	
-	FD_SET(sock_fd,&read_set);
-	FD_SET(0,&read_set);
-	
+
 	int array[fd_num] ;	//描述符集合
 	memset(array,-1,sizeof(array));
 	
 	array[0]= sock_fd;
 	array[1]= 0;
-
 	printf("服务器准备就绪\n");
-	
 	while(1)
 	{
 		int MAX_FD=-1;
 		for (int i = 0; i < fd_num; ++i) //取最大值
 			{
-				if(array[i]>0){
+				if(array[i] >= 0){
+					//printf("%d\n",array[i]);
 					MAX_FD = MAX_FD > array[i] ? MAX_FD : array[i];
+					FD_SET(array[i],&read_set);
+					FD_SET(array[i],&write_set);
 				}	
 			}
-		int result = select(MAX_FD+1,&read_set,&write_set,NULL,NULL);
+		int result = select(MAX_FD+1,&read_set,&write_set,NULL,0);
+		//printf("result：%d\n",result);
 		switch(result)
 		{
 			case -1 :
@@ -101,66 +102,69 @@ int main(void)
 				printf("select timeout...\n");
 				break;
 			default:{
-				for(int i=0;i<fd_num;++i)
-				{
-					////发
-					if(FD_ISSET(0,&read_set)){
-						char buff[256];
-						read(0,buff,sizeof(buff));
-						if(buff[0] == '/'){
-							open_file(buff,array);//开文件，加文件描述符
-						}
-						send_message(sock_fd,buff);	
-						memset(buff,0,sizeof(buff));
-					}	
+				if(FD_ISSET(rfp,&read_set)){
+					printf("文件就绪0\n");
+					send_file_date(sock_fd,array);
+				}
 					
-					if(FD_ISSET(rfp,&read_set)){
-						//printf("0\n");
-						send_file_date(sock_fd,array);
+				if(FD_ISSET(0,&read_set)){
+					printf("键盘输入就绪1\n");
+					char buff[BUFFER_SIZE];
+					memset (buff,0,BUFFER_SIZE);
+					read(0,buff,sizeof(buff));
+					if(buff[0] == '/'){
+						//printf("file");
+						open_file(buff,array,0);//开文件，加文件描述符
 					}
-					
+					send_message(sock_fd,buff);//,sizeof(addr_server));	
+					memset(buff,0,sizeof(buff));
+				}	
 					//收	
 					if (FD_ISSET(sock_fd,&read_set)){
-						printf("1");
-						char buff[512];
+						printf("接收就绪3\n");
+						char buff[BUFFER_SIZE+18];
 						int recv_n = recvfrom(sock_fd,buff,sizeof(buff),0,(struct sockaddr *)&addr_client,&client_len);
-						
 						if(recv_n == -1){
 							perror ("recv_n error\n");
 							return -1;
 						}
 						
 						else {
-						printf("recv_n ok\n");
-						}
-						do_recv_date(buff);
+							printf("recv_n ok:%d byte\n",recv_n);
 						
+							if( buff[0] == 1){
+								char message[BUFFER_SIZE];
+								memset(message,0,BUFFER_SIZE);
+								memcpy(message,buff+18,BUFFER_SIZE);
+								if(message[0] == '/'){
+									printf("file\n");
+									//open_file(buff,array,1)	;
+								}
+							printf("收到消息：%s\n",message);
+							}
+							else
+							do_recv_date(buff);
+						}
 						memset(buff,0,sizeof(buff));
 					}	
-					
-					
-					
+								
 				}
 			}
 		}
-
-	}
-	close(sock_fd);
-	return 0;	
+		close(sock_fd);
+		return 0;	
 }
 
 int send_message (const int sock_fd,char *date_buf)
-{
+{	
 	date_head.type = 1;
-	
+	strcpy(date_head.file_date,date_buf);
 	int send;	
 	//发	
-		//printf("发送:");	
-		char send_buf[sizeof(date_head)+BUFFER_SIZE] = {0};
+		char send_buf[sizeof(date_head)] = {0};
 		memset(send_buf,0,sizeof(send_buf));
 		memcpy(send_buf,&date_head,sizeof(date_head));
-		memcpy(send_buf+sizeof(date_head),date_buf,sizeof(date_buf));
-		
+		//memcpy(send_buf+sizeof(date_head),date_buf,sizeof(date_buf));		
 		send = sendto(sock_fd,send_buf,sizeof(send_buf),0,(struct sockaddr*)&addr_client,sizeof(addr_client));	
 		if(send < 0)
 		{
@@ -172,42 +176,63 @@ int send_message (const int sock_fd,char *date_buf)
 }
 
 //打开发送的文件
-int open_file(const char *filepath, int *array)
+int open_file(const char *filepath, int *array,char flag)
 {
-	//int addr_len = sizeof(addr_client);
-	printf("filepath:%s\n",filepath);//打印路径
-	printf("filepath长度：%ld\n",strlen(filepath));
+	switch (flag) {
+	case 0:{
 	
-	int k=0;  
-	for(int i = strlen(filepath) ; i >= 0; i--)  {  
-		if(filepath[i]!='/')	  {  
-			k++;  
-		}  
-		else   
-		break;	  
-	} 
-	rfp = open("./1.txt",O_RDWR);
-	if(rfp == -1){
-		perror("file open error");
-		close(rfp);
-		return -2;
-	}
-	else{
-		//read_flag =!read_flag;
-		printf("open file ok:%d \n",rfp);
-	}
-	
-	FD_SET(rfp,&read_set);
-	for(int i = 0; i < fd_num;i++){  //加入文件描述符到集合	
-		if (*(array + i) == -1) {
-			*(array + i )= rfp ;
-			break;
+		//printf("filepath:%s\n",filepath);//打印路径
+		//printf("filepath长度：%ld\n",strlen(filepath));
+		
+		int k=0;  
+		for(int i = strlen(filepath) ; i >= 0; i--)  {  
+			if(filepath[i]!='/')	  {  
+				k++;  
+			}  
+			else   
+			break;	  
+		} 
+		rfp = open("./1.txt",O_RDWR);
+		if(rfp == -1){
+			perror("file open error");
+			close(rfp);
+			return -2;
 		}
-	}	
-	char filename[k+1];
-	strcpy(filename,filepath+(strlen(filepath)-k)+1);	//取名字
-	strcpy(date_head.filename,filename);
-	
+		else{
+			printf("open file ok:%d \n",rfp);
+		}
+		
+		FD_SET(rfp,&read_set);
+		for(int i = 0; i < fd_num;i++){  //加入文件描述符到集合	
+			if (*(array + i) == -1) {
+				*(array + i )= rfp ;
+				break;
+			}
+		}	
+		char filename[k+1];
+		strcpy(filename,filepath+(strlen(filepath)-k)+1);	//取名字
+		strcpy(date_head.filename,filename);
+		break;
+		}
+	//shou 
+	case 1:{
+		printf("啥夜壶");
+		char path[] = "/home/zhengquan/share/git/udp/1.txt";
+		//char name[16] = {0};
+		//memcpy(name,filepath+2,16);
+		//printf("name:%s\n",name);
+		//memcpy(path,buff,);
+		//memcpy(path,name,sizeof(name));
+		int wfp = open(path,O_WRONLY | O_CREAT,S_IWUSR ); //开文件
+		if(wfp == -1){
+			perror("wfp error");
+			close(wfp);
+		}
+		else 
+		printf("wfp:%d\n",wfp);	
+		break;	
+	}
+}
 	return 0;
 }
 
@@ -227,12 +252,12 @@ int send_file_date(const int send_sock,int *array)
 	}
 	
 	else {
+		strcpy(date_head.file_date,read_buff);
 		printf("read ok :%d byte\n",read_num);
 		int addr_len = sizeof(addr_server);
-		char send_buf[sizeof(date_head)+BUFFER_SIZE] = {0};
+		char send_buf[sizeof(date_head)] = {0};
 		memset(send_buf,0,sizeof(send_buf));
 		memcpy(send_buf,&date_head,sizeof(date_head));
-		memcpy(send_buf+sizeof(date_head),read_buff,sizeof(read_buff));
 		int send_num = sendto(send_sock,send_buf,sizeof(send_buf),0,(struct sockaddr*)&addr_server,addr_len);
 		if(send_num == -1){
 			perror("send file  date error:");
@@ -242,14 +267,13 @@ int send_file_date(const int send_sock,int *array)
 			printf("send file date %d byte\n:",send_num);
 			date_head.file_num ++;
 		}
-		//if(read_num < (BUFFER_SIZE+sizeof(struct udp_date_head))){
 		if(read_num < BUFFER_SIZE){
 			printf("send file over\n");
 			FD_CLR(rfp,&read_set);
 			close(rfp);
 			for(int i = 0;i < fd_num; i++){
-				if(*(array + 1) == rfp ){
-					*(array + 1) = -1;	
+				if(*(array + i) == rfp ){
+					*(array + i) = -1;	
 					bzero(&date_head,sizeof(date_head));
 					break;
 				}			
@@ -261,42 +285,28 @@ int send_file_date(const int send_sock,int *array)
 
 int do_recv_date(char *buff)
 {
+	
 	char *p = buff;
-	//片段消息还是文件
-	if(*p == 1){
-		printf("收到消息：%s\n",p+18);
-	}
-	//文件
-	else {
-	char path[256] = "/home/zhengquan/share/git/udp/";
-	char name[16] = {0};
-	memcpy(name,buff+1,16);
-	printf("name:%s\n",name);
-	//memcpy(path,buff,);
-	strcat(path,name);
+	char date[BUFFER_SIZE]= {0};
+	memcpy(date,buff+18,BUFFER_SIZE);
+	int n = *(p+1);
+	//printf("num:%d\n",n);
+	//printf("wfp:%d\n",wfp);
+	//printf("date：%d byte\n",sizeof(date));
+	lseek(wfp,n*BUFFER_SIZE,SEEK_SET);
+	int writelength = write(wfp,date,sizeof(date));
 	
-	
-	int wfp = open(path,O_WRONLY | O_CREAT ); //开文件
-	
-	if(wfp == -1){
-		perror("wfp error");
-		close(wfp);
-	}
-	//char date[]	= p+18;
-	printf("date:%s\n",(p+18));
-	lseek(rfp,(*p+1)*(BUFFER_SIZE),SEEK_SET);
-	int writelength = write(wfp,(p+18),strlen(buff)-18);
-	printf("写入：%d byte\n",writelength);
+	//printf("写入：%d byte\n",writelength);
 	if(writelength == -1){
 		perror("write error");
+		//close(wfp);
 	}
-
+	
 	else {
 		printf("writelength:%d\n",writelength);
-		if (writelength < BUFFER_SIZE && writelength>=0) {
+		if (writelength  < 0) {
+			//close(wfp);	//关闭文件 
 			printf("接收文件完成\n");
 			}    
-		}					
-	}
-	close(wfp);	//关闭文件    	
+		}						
 }
