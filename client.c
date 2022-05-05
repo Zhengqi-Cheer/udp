@@ -121,12 +121,14 @@ int main(void)
 						
 						else {
 							printf("recv_n ok:%d byte\n",recv_n);
-							
+						
 							if( buff[0] == 1){
 								char message[BUFFER_SIZE];
 								memset(message,0,BUFFER_SIZE);
-								memcpy(message,buff+18,BUFFER_SIZE);
-								if(message[0]=='/'){
+								memcpy(message,buff+sizeof(date_head.type)+sizeof(date_head.file_num)+
+										sizeof(date_head.date_len)+sizeof(date_head.filename),BUFFER_SIZE);
+								if(message[0] == '/'){
+									printf("file\n");
 									open_file(buff,array,1)	;
 								}
 							printf("收到消息：%s\n",message);
@@ -288,7 +290,7 @@ int do_recv_date(char *buff)
 	//printf("wfp:%d\n",wfp);
 	//printf("date：%d byte\n",sizeof(date));
 	unsigned short  date_len = 0;
-	memcpy(date_len,buff+sizeof(date_head.type)+sizeof(date_head.file_num),sizeof(date_head.date_len));
+	memcpy(&date_len,buff+sizeof(date_head.type)+sizeof(date_head.file_num),sizeof(date_head.date_len));
 	lseek(wfp,n*BUFFER_SIZE,SEEK_SET);
 	int writelength = write(wfp,date,date_len);
 	
